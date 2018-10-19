@@ -23,7 +23,9 @@ TEST(std_sort, correctness) {
       algorithm->print_info();
       dsss::random_string_set ss(number_strings, min_length, max_length);
       algorithm->run(ss);
-      ASSERT_TRUE(ss.is_sorted()) << "Strings are not sorted correctly";
+      for (std::size_t i = 0; i + 1 < ss.size(); ++i) {
+        ASSERT_TRUE(dsss::string_smaller_eq(ss[i], ss[i + 1]));
+      }
     }
   }
 }

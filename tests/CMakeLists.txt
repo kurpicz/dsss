@@ -20,8 +20,10 @@ run_mpi_test(mpi/alltoall_test)
 run_mpi_test(mpi/shift_test)
 run_mpi_test(mpi/type_mapper_test)
 
-run_mpi_test(string_sorting/distributed_indexed_sample_sort)
-run_mpi_test(string_sorting/distributed_sample_sort)
+run_test(string_sorting/indexed_sequential_sorting)
+run_test(string_sorting/sequential_sorting)
+run_mpi_test(string_sorting/distributed_indexed_merge_sort)
+run_mpi_test(string_sorting/distributed_merge_sort)
 
 run_mpi_test(suffix_sorting/classification_test)
 
