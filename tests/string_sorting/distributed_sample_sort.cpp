@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 
 #include "mpi/shift.hpp"
-#include "string_sorting/distributed/sample_sort.hpp"
+#include "string_sorting/distributed/merge_sort.hpp"
 #include "string_sorting/util/algorithm.hpp"
 #include "util/string.hpp"
 

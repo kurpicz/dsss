@@ -10,7 +10,7 @@ set(DSSS_MPI_IMPLS
   mpi/environment.cpp)
 
 set(DSSS_STRING_SORTING_IMPLS
-  string_sorting/distributed/sample_sort.cpp
+  string_sorting/distributed/merge_sort.cpp
   string_sorting/sequential/burstsort.cpp
   string_sorting/sequential/funnelsort.cpp
   string_sorting/sequential/inssort.cpp

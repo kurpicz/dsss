@@ -19,7 +19,7 @@
 #include "sequential/bs-mkqs.hpp"
 #include "sequential/inssort.hpp"
 
-#include "string_sorting/distributed/sample_sort.hpp"
+#include "string_sorting/distributed/merge_sort.hpp"
 #include "string_sorting/sequential/burstsort.hpp"
 #include "string_sorting/sequential/funnelsort.hpp"
 #include "string_sorting/sequential/mergesort.hpp"

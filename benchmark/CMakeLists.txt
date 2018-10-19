@@ -7,7 +7,7 @@
 ################################################################################
 
 set(DISTRIBUTED_ALGORITHMS_IMPL
-  ${PROJECT_SOURCE_DIR}/dsss/string_sorting/distributed/sample_sort.cpp)
+  ${PROJECT_SOURCE_DIR}/dsss/string_sorting/distributed/merge_sort.cpp)
 
 add_executable(dss
   ${DISTRIBUTED_ALGORITHMS_IMPL}

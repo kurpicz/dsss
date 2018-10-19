@@ -17,7 +17,7 @@
 #include "mpi/shift.hpp"
 #include "string_sorting/sequential/indexed_inssort.hpp"
 #include "string_sorting/sequential/indexed_radix_sort.hpp"
-#include "string_sorting/distributed/sample_sort.hpp"
+#include "string_sorting/distributed/merge_sort.hpp"
 #include "suffix_sorting/classification.hpp"
 #include "util/string.hpp"
 

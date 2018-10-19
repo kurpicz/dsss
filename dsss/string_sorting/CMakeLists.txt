@@ -7,7 +7,7 @@
 ################################################################################
 
 set(DSSS_DISTRIBUTED_SORTING
-  distributed/sample_sort.cpp)
+  distributed/merge_sort.cpp)
 
 set(DSSS_SEQUENTIAL_SORTING
   sequential/std_sort.cpp)
