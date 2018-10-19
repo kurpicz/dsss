@@ -1,0 +1,6 @@
+[submodule "external/tlx"]
+	path = external/tlx
+	url = https://github.com/tlx/tlx.git
+[submodule "external/googletest"]
+	path = external/googletest
+	url = https://github.com/google/googletest.git
