@@ -17,7 +17,7 @@
 #include "mpi/shift.hpp"
 
 #include "string_sorting/util/algorithm.hpp"
-#include "string_sorting/distributed/sample_sort.hpp"
+#include "string_sorting/distributed/merge_sort.hpp"
 #include "suffix_sorting/classification.hpp"
 
 std::size_t string_size;
