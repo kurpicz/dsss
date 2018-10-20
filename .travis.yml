@@ -23,6 +23,7 @@ matrix:
             - apport
             - openmpi-bin
             - libopenmpi-dev
+            - libnuma-dev
           sources:
             - ubuntu-toolchain-r-test
 script:
