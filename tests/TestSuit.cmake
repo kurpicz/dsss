@@ -25,6 +25,12 @@ add_custom_command(
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/stamps)
 
+set(DSSS_ADDITIONAL_MPI_OPTIONS "")
+
+if(DSSS_OVERSUBSCRIBE)
+  set(DSSS_ADDITIONAL_MPI_OPTIONS "--oversubscribe")
+endif()
+
 # will compile and run ${test_target}.cpp
 # and add all further arguments as dependencies
 macro(generic_run_test
@@ -62,7 +68,7 @@ macro(generic_run_test
     add_custom_command(
       OUTPUT stamps/${test_target}_testrunner.stamp
       DEPENDS ${test_target}_testrunner
-      COMMAND ${MPIEXEC} --oversubscribe ${MPIEXEC_NUMPROC_FLAG} ${number_pes}
+      COMMAND ${MPIEXEC} ${DSSS_ADDITIONAL_MPI_OPTIONS} ${MPIEXEC_NUMPROC_FLAG} ${number_pes}
         ./${test_target}_testrunner
       COMMAND cmake -E touch
         ${CMAKE_CURRENT_BINARY_DIR}/stamps/${test_target}_testrunner.stamp

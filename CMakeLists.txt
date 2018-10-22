@@ -13,8 +13,10 @@ project(dsss)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# Not so noce C++17 integration, as CMake version >= 3.8 is not available here
-#set(CMAKE_CXX_FLAGS "-std=c++17 ${CMAKE_CXX_FLAGS}")
+
+option(DSSS_OVERSUBSCRIBE
+  "Run tests with mpirun [...] --oversubscribe.
+  This may be necessary for environments with less than four cores." OFF)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
