@@ -26,9 +26,8 @@ add_library(pss
   include/sequential/bingmann-stdsort.cpp
   include/tools/globals.cpp)
 
-target_link_libraries(pss tlx)
-
-target_include_directories(pss PUBLIC include)
+target_link_libraries(pss 
+  dsss_tlx)
 
 target_include_directories(pss PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

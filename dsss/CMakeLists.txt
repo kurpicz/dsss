@@ -9,6 +9,25 @@
 set(DSSS_MPI_IMPLS
   mpi/environment.cpp)
 
+add_library(dsss_mpi
+  ${DSSS_MPI_IMPLS})
+
+target_link_libraries(dsss_mpi
+  ${MPI_LIBRARIES}
+  dsss_tlx
+  ips4o)
+
+target_include_directories(dsss_mpi PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)
+
+target_compile_options(dsss_mpi
+  PRIVATE
+  ${DSSS_FLAGS}
+  $<$<CONFIG:Debug>:${DSSS_DEBUG_FLAGS}>
+  $<$<CONFIG:Release>:${DSSS_RELEASE_FLAGS}>)
+
 set(DSSS_STRING_SORTING_IMPLS
   string_sorting/distributed/merge_sort.cpp
   string_sorting/sequential/burstsort.cpp
@@ -26,12 +45,12 @@ set(DSSS_UTIL_IMPLS
   util/string_set.cpp)
 
 add_library(dsss_string_sorting
-  ${DSSS_MPI_IMPLS}
   ${DSSS_STRING_SORTING_IMPLS}
   ${DSSS_UTIL_IMPLS})
 
 target_link_libraries(dsss_string_sorting
-  ${MPI_LIBRARIES}
+  dsss_mpi
+  dsss_tlx
   pss)
 
 target_include_directories(dsss_string_sorting PUBLIC
@@ -39,14 +58,10 @@ target_include_directories(dsss_string_sorting PUBLIC
   $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
 )
 
-set(STRING_SORTING_FLAGS "-Wall;-pedantic;-Wextra")
-set(STRING_SORTING_DEBUG_FLAGS "-O0;-ggdb")
-set(STRING_SORTING_RELEASE_FLAGS "-O3;-march=native")
-
 target_compile_options(dsss_string_sorting
   PRIVATE
-  ${STRING_SORTING_FLAGS}
-  $<$<CONFIG:Debug>:${STRING_SORTING_DEBUG_FLAGS}>
-  $<$<CONFIG:Release>:${STRING_SORTING_RELEASE_FLAGS}>)
+  ${DSSS_FLAGS}
+  $<$<CONFIG:Debug>:${DSSS_DEBUG_FLAGS}>
+  $<$<CONFIG:Release>:${DSSS_RELEASE_FLAGS}>)
 
 ################################################################################

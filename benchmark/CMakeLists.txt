@@ -14,7 +14,6 @@ add_executable(dss
   dss.cpp)
 
 target_link_libraries(dss
-  tlx
   dsss_string_sorting)
 
 target_compile_options(dss
@@ -23,4 +22,19 @@ target_compile_options(dss
   $<$<CONFIG:Debug>:${STRING_SORTING_DEBUG_FLAGS}>
   $<$<CONFIG:Release>:${STRING_SORTING_RELEASE_FLAGS}>)
 
+add_executable(dsaca
+  dsaca.cpp)
+
+target_link_libraries(dsaca
+  dsss_mpi
+  dsss_string_sorting
+  pss)
+
+target_compile_options(dsaca
+  PRIVATE
+  ${DSSS_FLAGS}
+  $<$<CONFIG:Debug>:${DSSS_DEBUG_FLAGS}>
+  $<$<CONFIG:Release>:${DSSS_RELEASE_FLAGS}>)
+
 ################################################################################
+
