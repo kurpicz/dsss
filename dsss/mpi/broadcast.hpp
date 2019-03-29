@@ -8,6 +8,9 @@
 
 #pragma once
 
+#include "mpi/environment.hpp"
+#include "mpi/type_mapper.hpp"
+
 namespace dsss::mpi {
 
 template <typename DataType>
