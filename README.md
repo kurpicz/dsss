@@ -7,10 +7,10 @@ A detailed description and benchmarks of the implemented algorithms can be found
 
 	@inproceedings{DBLP:conf/alenex/0001K19,
   		author    = {Johannes Fischer and
-               		     Florian Kurpicz},
+		             Florian Kurpicz},
  		 title    = {Lightweight Distributed Suffix Array Construction},
-  		booktitle = {Proceedings of the Twenty-First Workshop on Algorithm Engineering
-               		     and Experiments ({ALENEX}).},
+  		booktitle = {Proceedings of the Twenty-First Workshop on
+		             Algorithm Engineering and Experiments ({ALENEX}).},
   		pages     = {27--38},
   		publisher = {{SIAM}},
   		year      = {2019},
