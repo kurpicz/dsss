@@ -25,10 +25,11 @@
 namespace dsss::suffix_sorting {
 
 template <typename IndexType>
-static std::tuple<dsss::string_set, border_array<IndexType>>
-  b_star_substrings_local(std::vector<dsss::char_type>& raw_string) {
+static std::tuple<dsss::string_set, border_array<size_t>>
+  b_star_substrings_local(std::vector<dsss::char_type> const& input_string) {
 
-  border_array<IndexType> b_array;
+  auto raw_string = input_string;
+  border_array<size_t> b_array;
   std::vector<IndexType> b_star_pos { 
     static_cast<IndexType>(raw_string.size()) };
 
@@ -73,11 +74,12 @@ static std::tuple<dsss::string_set, border_array<IndexType>>
 }
 
 template <typename IndexType>
-static std::tuple<dsss::indexed_string_set<IndexType>, border_array<IndexType>>
-  idx_b_star_substrings_local(std::vector<dsss::char_type>& raw_string) {
+static std::tuple<dsss::indexed_string_set<IndexType>, border_array<size_t>>
+  idx_b_star_substrings_local(std::vector<dsss::char_type> const& input_string) {
 
-  border_array<IndexType> b_array;
-  std::vector<IndexType> b_star_pos { 
+  auto raw_string = input_string;
+  border_array<size_t> b_array;
+  std::vector<IndexType> b_star_pos {
     static_cast<IndexType>(raw_string.size()) };
 
   for (std::int64_t i = raw_string.size() - 2; i >= 0;) {
@@ -122,17 +124,17 @@ static std::tuple<dsss::indexed_string_set<IndexType>, border_array<IndexType>>
 }
 
 template <typename IndexType>
-static std::tuple<dsss::string_set, border_array<IndexType>>
-  b_star_substrings(dsss::distributed_string& distributed_raw_string,
+static std::tuple<dsss::string_set, border_array<size_t>>
+  b_star_substrings(dsss::distributed_string const& distributed_raw_string,
     dsss::mpi::environment env = dsss::mpi::environment()) {
 
-  border_array<IndexType> b_array;
-  auto& raw_string = distributed_raw_string.string;
+  border_array<size_t> b_array;
 
   if (env.size() == 1) {
-    return b_star_substrings_local<IndexType>(raw_string);
+    return b_star_substrings_local<IndexType>(distributed_raw_string.string);
   }
 
+  auto raw_string = distributed_raw_string.string;
   // This is the position of the first B*-suffix on the PE that we can identify
   // with only the local string. For all PEs except of the last one, there may
   // be another B*-suffix preceding this one.
@@ -270,17 +272,17 @@ static std::tuple<dsss::string_set, border_array<IndexType>>
 }
 
 template <typename IndexType>
-static std::tuple<dsss::indexed_string_set<IndexType>, border_array<IndexType>>
-  idx_b_star_substrings(dsss::distributed_string& distributed_raw_string,
+static std::tuple<dsss::indexed_string_set<IndexType>, border_array<size_t>>
+  idx_b_star_substrings(dsss::distributed_string const& distributed_raw_string,
     dsss::mpi::environment env = dsss::mpi::environment()) {
 
-  border_array<IndexType> b_array;
-  auto& raw_string = distributed_raw_string.string;
+  border_array<size_t> b_array;
 
   if (env.size() == 1) {
-    return idx_b_star_substrings_local<IndexType>(raw_string);
+    return idx_b_star_substrings_local<IndexType>(distributed_raw_string.string);
   }
 
+  auto raw_string = distributed_raw_string.string;
   // This is the position of the first B*-suffix on the PE that we can identify
   // with only the local string. For all PEs except of the last one, there may
   // be another B*-suffix preceding this one.

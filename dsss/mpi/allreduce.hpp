@@ -34,6 +34,20 @@ static inline bool allreduce_and(bool& send_data,
   return receive_data;
 }
 
+static inline bool allreduce_or(bool& send_data,
+  environment env = environment()) {
+
+  bool receive_data;
+  MPI_Allreduce(
+    &send_data,
+    &receive_data,
+    type_mapper<bool>::factor(),
+    type_mapper<bool>::type(),
+    MPI_LOR,
+    env.communicator());
+  return receive_data;
+}
+
 template <typename DataType>
 static inline DataType allreduce_max(DataType& send_data,
   environment env = environment()) {

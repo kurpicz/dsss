@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "mpi/alltoall.hpp"
+#include "mpi/big_type.hpp"
 #include "mpi/environment.hpp"
 #include "mpi/type_mapper.hpp"
 #include "util/string_set.hpp"
@@ -21,7 +22,7 @@ namespace dsss::mpi {
 
 template <typename DataType>
 inline std::vector<DataType> allgather(DataType& send_data,
-  environment env = environment()) {
+                                       environment env = environment()) {
 
   data_type_mapper<DataType> dtm;
   std::vector<DataType> receive_data(env.size());

@@ -14,6 +14,9 @@
 #include <string>
 #include <vector>
 
+#include <tlx/digest/sha1.hpp>
+
+#include "mpi/broadcast.hpp"
 #include "mpi/environment.hpp"
 #include "mpi/scan.hpp"
 #include "mpi/shift.hpp"
@@ -24,7 +27,7 @@
 namespace dsss::mpi {
 
 static dsss::distributed_string distribute_string(
-  const std::string& input_path, std::size_t max_size = 0,
+  const std::string& input_path, size_t max_size = 0,
   environment env = environment()) {
 
   MPI_File mpi_file;
@@ -40,13 +43,13 @@ static dsss::distributed_string distribute_string(
   MPI_File_get_size(mpi_file, &global_file_size);
   if (max_size > 0) {
     global_file_size =
-      std::min(max_size, static_cast<std::size_t>(global_file_size));
+      std::min(max_size, static_cast<size_t>(global_file_size));
   }
 
-  std::size_t local_slice_size = global_file_size / env.size();
-  std::int64_t larger_slices = global_file_size % env.size();
+  size_t local_slice_size = global_file_size / env.size();
+  int64_t larger_slices = global_file_size % env.size();
 
-  std::size_t offset;
+  size_t offset;
   if (env.rank() < larger_slices) {
     ++local_slice_size;
     offset = local_slice_size * env.rank();
@@ -73,7 +76,7 @@ static dsss::distributed_string distribute_string(
 }
 
 dsss::distributed_string distribute_strings(
-  const std::string& input_path, std::size_t max_size = 0,
+  const std::string& input_path, size_t max_size = 0,
   environment env = environment()) {
 
   MPI_File mpi_file;
@@ -89,13 +92,13 @@ dsss::distributed_string distribute_strings(
   MPI_File_get_size(mpi_file, &global_file_size);
   if (max_size > 0) {
     global_file_size =
-      std::min(max_size, static_cast<std::size_t>(global_file_size));
+      std::min(max_size, static_cast<size_t>(global_file_size));
   }
 
-  std::size_t local_slice_size = global_file_size / env.size();
-  std::int64_t larger_slices = global_file_size % env.size();
+  size_t local_slice_size = global_file_size / env.size();
+  int64_t larger_slices = global_file_size % env.size();
 
-  std::size_t offset;
+  size_t offset;
   if (env.rank() < larger_slices) {
     ++local_slice_size;
     offset = local_slice_size * env.rank();
@@ -118,7 +121,7 @@ dsss::distributed_string distribute_strings(
     type_mapper<dsss::char_type>::type(),
     MPI_STATUS_IGNORE);
 
-  std::size_t first_end = 0;
+  size_t first_end = 0;
   while (first_end < result.size() && result[first_end] != 0) { ++first_end; }
 
   std::vector<dsss::char_type> end_of_last_string = dsss::mpi::shift_left(
@@ -144,22 +147,18 @@ static void write_data(std::vector<DataType>& local_data,
   const std::string file_name, environment env = environment()) {
 
   MPI_File mpi_file;
-  std::size_t local_size = local_data.size();
-  std::size_t offset = ex_prefix_sum(local_size);
 
   MPI_File_open(env.communicator(),
                 const_cast<char*>(file_name.c_str()),
                 MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL,
                 &mpi_file);
-  MPI_File_seek(mpi_file,
-                offset * sizeof(DataType),
-                MPI_SEEK_SET);
 
-  MPI_File_write(mpi_file,
-                 reinterpret_cast<unsigned char*>(local_data.data()),
-                 local_size * sizeof(DataType),
-                 MPI_BYTE,
-                 MPI_STATUS_IGNORE);
+  MPI_File_write_ordered(mpi_file,
+                         local_data.data(),
+                         local_data.size() * sizeof(DataType),
+                         MPI_BYTE,
+                         MPI_STATUS_IGNORE);
+
   MPI_File_close(&mpi_file);
 }
 
@@ -180,10 +179,10 @@ static std::vector<DataType> read_data(const std::string file_name,
   MPI_File_get_size(mpi_file, &global_file_size);
   global_file_size /= sizeof(DataType);
 
-  std::size_t local_slice_size = global_file_size / env.size();
-  std::int64_t larger_slices = global_file_size % env.size();
+  size_t local_slice_size = global_file_size / env.size();
+  int64_t larger_slices = global_file_size % env.size();
 
-  std::size_t offset;
+  size_t offset;
   if (env.rank() < larger_slices) {
     ++local_slice_size;
     offset = local_slice_size * env.rank();

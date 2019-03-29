@@ -56,7 +56,7 @@ public:
 
   /// \return The maximum integer value that MPI can handle as amount of 
   /// that must be communicated
-  constexpr std::size_t mpi_max_int() {
+  constexpr std::size_t mpi_max_int() const {
     return std::numeric_limits<std::int32_t>::max();
   }
 

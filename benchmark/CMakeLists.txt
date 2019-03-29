@@ -18,9 +18,10 @@ target_link_libraries(dss
 
 target_compile_options(dss
   PRIVATE
-  ${STRING_SORTING_FLAGS}
-  $<$<CONFIG:Debug>:${STRING_SORTING_DEBUG_FLAGS}>
-  $<$<CONFIG:Release>:${STRING_SORTING_RELEASE_FLAGS}>)
+  ${DSSS_FLAGS}
+  $<$<CONFIG:Debug>:${DSSS_DEBUG_FLAGS}>
+  $<$<CONFIG:Release>:${DSSS_RELEASE_FLAGS}>)
+
 
 add_executable(dsaca
   dsaca.cpp)

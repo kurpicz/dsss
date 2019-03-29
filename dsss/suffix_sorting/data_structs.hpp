@@ -14,6 +14,31 @@
 
 namespace dsss::suffix_sorting {
 
+template <typename IndexType>
+struct bucket_info {
+  IndexType starting_position;
+  IndexType size;
+  IndexType containing;
+
+  bucket_info() = default;
+  bucket_info(IndexType _starting_position, IndexType _size,
+              IndexType _containing)
+    : starting_position(_starting_position), size(_size),
+      containing(_containing) { }
+
+  inline IndexType front_pos() const {
+    return starting_position + containing;
+  }
+
+  inline IndexType back_pos() const {
+    return starting_position + size - containing;
+  }
+
+  inline size_t remaining() const {
+    return size_t(size - containing);
+  }
+} DSSS_ATTRIBUTE_PACKED;
+
 enum class rank_state : std::uint8_t {
   NONE,
   UNIQUE

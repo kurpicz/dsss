@@ -67,12 +67,12 @@ std::int32_t main(std::int32_t argc, char const *argv[]) {
       dsss::string_set strings_to_sort;
       if (b_star_substrings) {
         auto distributed_strings =
-          dsss::mpi::distribute_string(input_path, string_size * env.size());
+          dsss::mpi::distribute_string(input_path, string_size);
         std::tie(strings_to_sort, std::ignore) = dsss::suffix_sorting::
           b_star_substrings<std::size_t>(distributed_strings);
       } else {
         auto distributed_strings =
-          dsss::mpi::distribute_strings(input_path, string_size * env.size());
+          dsss::mpi::distribute_strings(input_path, string_size);
         strings_to_sort =
           dsss::string_set(std::move(distributed_strings.string));
       }

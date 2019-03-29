@@ -31,7 +31,7 @@ static constexpr bool debug_alltoall = false;
 
 template <typename DataType>
 inline std::vector<DataType> alltoall(std::vector<DataType>& send_data,
-  environment env = environment()) {
+  environment const& env = environment()) {
   std::vector<DataType> receive_data(send_data.size(), 0);
   data_type_mapper<DataType> dtm;
   MPI_Alltoall(send_data.data(),
@@ -46,19 +46,15 @@ inline std::vector<DataType> alltoall(std::vector<DataType>& send_data,
 
 template <typename DataType>
 inline std::vector<DataType> alltoallv_small(
-  std::vector<DataType>& send_data, std::vector<size_t>& send_counts,
-  environment env = environment()) {
+  std::vector<DataType>& send_data, std::vector<int32_t>& send_counts,
+  environment const& env = environment()) {
 
-  std::vector<int32_t> real_send_counts(send_counts.size());
-  for (size_t i = 0; i < send_counts.size(); ++i) {
-    real_send_counts[i] = static_cast<int32_t>(send_counts[i]);
-  }
-  std::vector<int32_t> receive_counts = alltoall(real_send_counts, env);
+  std::vector<int32_t> receive_counts = alltoall(send_counts, env);
 
-  std::vector<int32_t> send_displacements(real_send_counts.size(), 0);
-  std::vector<int32_t> receive_displacements(real_send_counts.size(), 0);
-  for (size_t i = 1; i < real_send_counts.size(); ++i) {
-    send_displacements[i] = send_displacements[i - 1] + real_send_counts[i - 1];
+  std::vector<int32_t> send_displacements(send_counts.size(), 0);
+  std::vector<int32_t> receive_displacements(send_counts.size(), 0);
+  for (size_t i = 1; i < send_counts.size(); ++i) {
+    send_displacements[i] = send_displacements[i - 1] + send_counts[i - 1];
     receive_displacements[i] = receive_displacements[i - 1] +
       receive_counts[i - 1];
   }
@@ -71,7 +67,7 @@ inline std::vector<DataType> alltoallv_small(
         std::cout << i << ": send_counts.size() " << send_counts.size()
                   << std::endl;
         std::cout << i << ": send counts: ";
-        for (const auto sc : real_send_counts) { std::cout << sc << ", "; }
+        for (const auto sc : send_counts) { std::cout << sc << ", "; }
         std::cout << std::endl << "receive counts: ";
 
         for (const auto rc : receive_counts) { std::cout << rc << ", "; }
@@ -83,7 +79,7 @@ inline std::vector<DataType> alltoallv_small(
 
   data_type_mapper<DataType> dtm;
   MPI_Alltoallv(send_data.data(),
-                real_send_counts.data(),
+                send_counts.data(),
                 send_displacements.data(),
                 dtm.get_mpi_type(),
                 receive_data.data(),
@@ -95,8 +91,38 @@ inline std::vector<DataType> alltoallv_small(
 }
 
 template <typename DataType>
+inline std::pair<std::vector<int32_t>,std::vector<DataType>> alltoallv_counts(
+  std::vector<DataType>& send_data, std::vector<int32_t>& send_counts,
+  environment const& env = environment()) {
+
+  std::vector<int32_t> receive_counts = alltoall(send_counts, env);
+
+  std::vector<int32_t> send_displacements(send_counts.size(), 0);
+  std::vector<int32_t> receive_displacements(send_counts.size(), 0);
+  for (size_t i = 1; i < send_counts.size(); ++i) {
+    send_displacements[i] = send_displacements[i - 1] + send_counts[i - 1];
+    receive_displacements[i] = receive_displacements[i - 1] +
+      receive_counts[i - 1];
+  }
+  std::vector<DataType> receive_data(
+    receive_counts.back() + receive_displacements.back());
+
+  data_type_mapper<DataType> dtm;
+  MPI_Alltoallv(send_data.data(),
+                send_counts.data(),
+                send_displacements.data(),
+                dtm.get_mpi_type(),
+                receive_data.data(),
+                receive_counts.data(),
+                receive_displacements.data(),
+                dtm.get_mpi_type(),
+                env.communicator());
+  return std::make_pair(receive_counts, receive_data);
+}
+
+template <typename DataType>
 inline std::vector<DataType> alltoallv(std::vector<DataType>& send_data,
-    std::vector<size_t>& send_counts, environment env = environment()) {
+    std::vector<size_t>& send_counts, environment const& env = environment()) {
 
   size_t local_send_count = std::accumulate(
     send_counts.begin(), send_counts.end(), 0);
@@ -109,7 +135,11 @@ inline std::vector<DataType> alltoallv(std::vector<DataType>& send_data,
   size_t global_max = allreduce_max(local_max, env);
 
   if (global_max < env.mpi_max_int()) {
-    return alltoallv_small(send_data, send_counts, env);
+      std::vector<int32_t> real_send_counts(send_counts.size());
+      for (size_t i = 0; i < send_counts.size(); ++i) {
+        real_send_counts[i] = static_cast<int32_t>(send_counts[i]);
+      }
+    return alltoallv_small(send_data, real_send_counts, env);
   } else {
     std::vector<size_t> send_displacements(0, env.size());
     for (size_t i = 1; i < send_counts.size(); ++i) {
@@ -155,7 +185,7 @@ inline std::vector<DataType> alltoallv(std::vector<DataType>& send_data,
 
 inline std::vector<dsss::char_type> alltoallv_strings(
   dsss::string_set& send_data, const std::vector<size_t>& send_counts,
-  environment env = environment()) {
+  environment const& env = environment()) {
 
   const size_t size = send_counts.size();
   std::vector<size_t> send_counts_char(size, 0);
@@ -193,7 +223,7 @@ template <typename IndexType>
 inline dsss::indexed_string_set<IndexType> alltoallv_indexed_strings(
   dsss::indexed_string_set<IndexType>& send_data,
   std::vector<size_t>& send_counts_strings,
-  environment env = environment()) {
+  environment const& env = environment()) {
 
   // Send the strings
   assert(send_counts_strings.size() == env.size());

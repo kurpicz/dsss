@@ -12,6 +12,7 @@
 #include "mpi/distribute_input.hpp"
 #include "mpi/environment.hpp"
 
+#include "suffix_sorting/inducing.hpp"
 #include "suffix_sorting/prefix_doubling.hpp"
 #include "suffix_sorting/sa_check.hpp"
 
@@ -23,7 +24,7 @@ size_t string_size = { 0 };
 std::string input_path = "";
 std::string output_path = "";
 bool check = false;
-bool doubling_discarding = true;
+bool doubling_discarding = false;
 
 int32_t main(int32_t argc, char const *argv[]) {
   dsss::mpi::environment env;
@@ -52,7 +53,7 @@ int32_t main(int32_t argc, char const *argv[]) {
                 " file.");
 
   cp.add_flag('d', "discarding", doubling_discarding, "Compute the suffix array"
-              " using prefix doubling with discarding (instead of without).");
+              " using prefix doubling with discarding (instead of inducing).");
 
   if (!cp.process(argc, argv)) {
     return -1;
@@ -78,8 +79,8 @@ int32_t main(int32_t argc, char const *argv[]) {
   if (doubling_discarding) {
     sa = dsss::suffix_sorting::prefix_doubling_discarding<index_type>(
            std::move(distributed_strings));
-  } else /*without*/ {
-    sa = dsss::suffix_sorting::prefix_doubling<index_type>(
+  } else /*inducing*/ {
+    sa = dsss::suffix_sorting::inducing<index_type>(
            std::move(distributed_strings));
   }
   auto end_time = MPI_Wtime();

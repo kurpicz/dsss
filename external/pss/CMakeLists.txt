@@ -26,7 +26,7 @@ add_library(pss
   include/sequential/bingmann-stdsort.cpp
   include/tools/globals.cpp)
 
-target_link_libraries(pss 
+target_link_libraries(pss
   dsss_tlx)
 
 target_include_directories(pss PUBLIC
