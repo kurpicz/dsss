@@ -8,7 +8,7 @@
 
 find_package(NUMA REQUIRED)
 
-add_library(pss
+add_library(pss STATIC
   include/rantala/burstsort.cpp
   include/rantala/burstsort2.cpp
   include/rantala/burstsort_mkq.cpp
@@ -31,7 +31,7 @@ target_link_libraries(pss
 
 target_include_directories(pss PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
+  $<INSTALL_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
 ################################################################################

@@ -72,6 +72,10 @@ static dsss::distributed_string distribute_string(
     type_mapper<dsss::char_type>::type(),
     MPI_STATUS_IGNORE);
 
+  for (auto& c : result) {
+    ++c;
+  }
+
   return dsss::distributed_string { offset, result };
 }
 

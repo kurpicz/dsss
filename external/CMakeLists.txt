@@ -29,4 +29,6 @@ target_compile_options(dsss_tlx
 add_library(ips4o INTERFACE)
 target_include_directories(ips4o INTERFACE ips4o/ips4o/)
 
+add_subdirectory(KaDiS)
+
 ################################################################################

@@ -14,6 +14,7 @@ add_library(dsss_mpi
 
 target_link_libraries(dsss_mpi
   ${MPI_LIBRARIES}
+  rbcsorting
   dsss_tlx
   ips4o)
 

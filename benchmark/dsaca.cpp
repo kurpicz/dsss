@@ -20,6 +20,16 @@
 #include "util/string.hpp"
 #include "util/uint_types.hpp"
 
+#include <unistd.h>
+#include <sys/resource.h>
+#include <stdio.h>
+
+size_t getPeakRSS() {
+    struct rusage rusage;
+    getrusage( RUSAGE_SELF, &rusage);
+    return (size_t)(rusage.ru_maxrss * 1024L);
+}
+
 size_t string_size = { 0 };
 std::string input_path = "";
 std::string output_path = "";
@@ -31,7 +41,7 @@ int32_t main(int32_t argc, char const *argv[]) {
   tlx::CmdlineParser cp;
 
   using index_type = dsss::uint40;
-  // using index_type = size_t;
+  //using index_type = size_t;
 
   cp.set_description("Distributed Suffix Array Construction");
   cp.set_author("Florian Kurpicz <florian.kurpicz@tu-dortmund.de>");
@@ -76,17 +86,39 @@ int32_t main(int32_t argc, char const *argv[]) {
   }
   std::vector<index_type> sa;
   auto start_time = MPI_Wtime();
+
+  if (env.rank() == 0) {
+    std::cout << "RESULT algo=";
+  }
+  
   if (doubling_discarding) {
+    if (env.rank() == 0) {
+      std::cout << "our_discaring ";
+    }
     sa = dsss::suffix_sorting::prefix_doubling_discarding<index_type>(
            std::move(distributed_strings));
   } else /*inducing*/ {
+    if (env.rank() == 0) {
+      std::cout << "divsufsort ";
+    }
     sa = dsss::suffix_sorting::inducing<index_type>(
            std::move(distributed_strings));
   }
+  env.barrier();
   auto end_time = MPI_Wtime();
 
+  size_t local_mem = getPeakRSS();
+  size_t max_mem = dsss::mpi::allreduce_max(local_mem, env);
+  size_t total_mem = dsss::mpi::allreduce_sum(local_mem, env);
+
   if (env.rank() == 0) {
-    std::cout << "TIME: " << end_time - start_time << std::endl;
+    std::cout << "time=" << (end_time - start_time) * 1000.0 << " "
+              << "input=" << input_path << " "
+              << "size=" << string_size << " "
+              << "threads=" << env.size() << " "
+              << "memory_max=" << max_mem << " "
+              << "memory_total=" << total_mem << std::endl;
+    
   }
 
   if (!output_path.empty()) {
@@ -132,3 +164,4 @@ int32_t main(int32_t argc, char const *argv[]) {
 }
 
 /******************************************************************************/
+

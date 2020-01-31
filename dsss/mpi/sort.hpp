@@ -13,12 +13,14 @@
 #include <limits>
 #include <vector>
 
+#include <JanusSort.hpp>
+#include <RQuick.hpp>
 #include "ips4o.hpp"
 #include <tlx/container/loser_tree.hpp>
 
 #include "mpi/allgather.hpp"
 #include "mpi/allreduce.hpp"
-//#include "mpi/distribute_data.hpp"
+#include "mpi/distribute_data.hpp"
 #include "mpi/environment.hpp"
 
 #include "util/macros.hpp"
@@ -26,15 +28,18 @@
 namespace dsss::mpi {
 
 template <typename DataType, class Compare>
-inline void sort(std::vector<DataType>& local_data, Compare comp,
-  environment env = environment()) {
+inline void sort(std::vector<DataType>& local_data, MPI_Datatype mpi_data_type,
+                 Compare comp, environment env = environment()) {
+
+  local_data = dsss::mpi::distribute_data(local_data, env);
 
   // Sort locally
   ips4o::sort(local_data.begin(), local_data.end(), comp);
 
   // Compute the local splitters given the sorted data
   const size_t local_n = local_data.size();
-  auto nr_splitters = std::min<size_t>(env.size() - 1, local_n);
+  auto nr_splitters = static_cast<size_t>(std::min<size_t>(env.size() * 20 - 1,
+                                                           local_n));
   auto splitter_dist = local_n / (nr_splitters + 1);
 
   std::vector<DataType> local_splitters;
@@ -43,17 +48,23 @@ inline void sort(std::vector<DataType>& local_data, Compare comp,
     local_splitters.emplace_back(local_data[i * splitter_dist]);
   }
 
-  // Distribute the local splitters, which results in the set of global
-  // splitters. Those are then sorted ...
-  auto global_splitters = allgatherv(local_splitters, env);
-  ips4o::sort(global_splitters.begin(), global_splitters.end(), comp);
-  // ... to get the final set of splitters.
-  nr_splitters = std::min<size_t>(env.size() - 1, global_splitters.size());
-  splitter_dist = global_splitters.size() / (nr_splitters + 1);
-  local_splitters.clear();
-  for (size_t i = 1; i <= nr_splitters; ++i) {
-    local_splitters.emplace_back(global_splitters[i * splitter_dist]);
-  }
+  JanusSort::sort(env.communicator(), local_splitters, mpi_data_type, comp);
+
+  /* RQuick */
+  // int tag = 11111;
+  // std::mt19937_64 generator;
+  // int data_seed = 3469931 + env.rank();
+  // generator.seed(data_seed);
+  // // RBC::Comm rcomm;
+  // // RBC::Create_Comm_from_MPI(env.communicator(), &rcomm);
+  // auto comm = env.communicator();
+
+  // RQuick::sort(generator, local_splitters, mpi_data_type, tag, comm, comp);
+
+  DataType smpl_splitter = local_splitters.back();
+
+  local_splitters = dsss::mpi::allgather(smpl_splitter, env);
+  local_splitters.pop_back();
 
   // Use the final set of splitters to find the intervals
   std::vector<size_t> interval_sizes;
@@ -81,7 +92,11 @@ inline void sort(std::vector<DataType>& local_data, Compare comp,
 
   local_data = alltoallv(local_data, interval_sizes, env);
 
-  if (false && local_data.size() > 1024 * 1024) {
+  if (local_data.size() == 0) {
+    return;
+  }
+
+  if (false && local_data.size() < 1024 * 1024) {
     std::vector<decltype(local_data.cbegin())> string_it(
       env.size(), local_data.cbegin());
     std::vector<decltype(local_data.cbegin())> end_it(

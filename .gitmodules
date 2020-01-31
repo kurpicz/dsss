@@ -7,3 +7,6 @@
 [submodule "external/ips4o"]
 	path = external/ips4o
 	url = https://github.com/SaschaWitt/ips4o.git
+[submodule "external/KaDiS"]
+	path = external/KaDiS
+	url = https://github.com/MichaelAxtmann/KaDiS.git

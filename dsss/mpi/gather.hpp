@@ -36,6 +36,35 @@ inline std::vector<DataType> gather(DataType& send_data, int32_t target,
 }
 
 template <typename DataType>
+inline std::vector<DataType> gatherv(std::vector<DataType>& send_data,
+                                     int32_t target,
+                                     environment env = environment()) {
+  int32_t send_count = send_data.size();
+  std::vector<int32_t> receiving_sizes = gather(send_count, target, env);
+  
+  std::vector<std::int32_t> receiving_offsets(env.size(), 0);
+  for (size_t i = 1; i < receiving_sizes.size(); ++i) {
+    receiving_offsets[i] = receiving_offsets[i - 1] + receiving_sizes[i - 1];
+  }
+
+  std::vector<DataType> result(receiving_offsets.back() +
+                               receiving_sizes.back());
+  data_type_mapper<DataType> dtm;
+  MPI_Gatherv(
+    send_data.data(),
+    send_count,
+    dtm.get_mpi_type(),
+    result.data(),
+    receiving_sizes.data(),
+    receiving_offsets.data(),
+    dtm.get_mpi_type(),
+    target,
+    env.communicator());
+
+  return result;
+}
+
+template <typename DataType>
 inline void gatherv_small(DataType* send_data,
                           int32_t send_count,
                           int32_t target,

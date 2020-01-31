@@ -22,6 +22,7 @@
 
 std::size_t string_size;
 std::string input_path;
+std::string output_path;
 bool b_star_substrings;
 bool check;
 bool export_times;
@@ -49,6 +50,8 @@ std::int32_t main(std::int32_t argc, char const *argv[]) {
   cp.add_flag('c', "check", check, "Check if the substrings have been sorted "
     "correctly.");
 
+  cp.add_string('o', "output", output_path, "Path for the output");
+
   if (!cp.process(argc, argv)) {
     return -1;
   }
@@ -60,9 +63,9 @@ std::int32_t main(std::int32_t argc, char const *argv[]) {
   auto& algorithm_list = dsss::algorithm_list::get_algorithm_list();
   for (const auto& algorithm : algorithm_list) {
     if (algorithm->category() == dsss::algorithm_category::DISTRIBUTED) {
-      if (env.rank() == 0) {
-        algorithm->print_info();
-      }
+      // if (env.rank() == 0) {
+      //   algorithm->print_info();
+      // }
 
       dsss::string_set strings_to_sort;
       if (b_star_substrings) {
@@ -70,6 +73,18 @@ std::int32_t main(std::int32_t argc, char const *argv[]) {
           dsss::mpi::distribute_string(input_path, string_size);
         std::tie(strings_to_sort, std::ignore) = dsss::suffix_sorting::
           b_star_substrings<std::size_t>(distributed_strings);
+
+        for (auto& e : strings_to_sort.data_container()) {
+          if (e == 0) {
+            e = '\n';
+          }
+        }
+        dsss::mpi::write_data(strings_to_sort.data_container(), output_path.c_str());
+
+        env.barrier();
+        env.finalize();
+        return 0;
+
       } else {
         auto distributed_strings =
           dsss::mpi::distribute_strings(input_path, string_size);
@@ -85,7 +100,12 @@ std::int32_t main(std::int32_t argc, char const *argv[]) {
       algorithm->run(strings_to_sort);
       auto end_time = MPI_Wtime();
       if (env.rank() == 0) {
-        std::cout << "Running time: " << end_time - start_time << " seconds."
+        std::cout << "RESULT "
+                  << "algorithm=" << algorithm->name() << " "
+                  << "input=" << input_path << " "
+                  << "size=" << string_size << " "
+                  << "threads=" << env.size() << " "
+                  << "time=" << (end_time - start_time) * 1000.0 << " "
                   << std::endl;
       }
       env.barrier();

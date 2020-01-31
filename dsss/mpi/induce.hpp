@@ -132,6 +132,20 @@ public:
                  MPI_INT,
                  env_comm_);
 
+    // environment env;
+    // for (int32_t i = 0; i < env.size(); ++i) {
+    //   if (i == env.rank()) {
+    //     std::cout << "i " << i << ": RECEIVE COUNTS" << std::endl;
+    //     size_t j = 0;
+    //     for (const auto& cnt : receive_count_buffer) {
+    //       std::cout << "cnt[" << j++ << "] " << cnt << ", ";
+    //     }
+    //     std::cout << std::endl;
+    //   }
+    //   env.barrier();
+    // }
+
+
     for (size_t i = 0; i < considered_chars; ++i) {
       for (int32_t j = 0; j < env_size_; ++j) {
         sc_buffer_[j] = send_count_buffer[i + (j * considered_chars)];

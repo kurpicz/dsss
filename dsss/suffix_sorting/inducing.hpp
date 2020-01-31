@@ -33,6 +33,8 @@
 
 namespace dsss::suffix_sorting {
 
+static constexpr bool debug_induced = true;
+
 template <typename IndexType>
 inline void sort_bs_substrings(
   dsss::indexed_string_set<IndexType>& bs_substrings,
@@ -53,6 +55,34 @@ std::vector<IndexType> sort_bs_suffixes(
   using IR = index_rank<IndexType>;
   using IRR = index_rank_rank<IndexType>;
   using IRS = index_rank_state<IndexType>;
+
+  MPI_Datatype mpi_index_type;
+  MPI_Type_contiguous(sizeof(IndexType), MPI_CHAR, &mpi_index_type);
+  MPI_Type_commit(&mpi_index_type);
+
+  constexpr size_t ir_num_members = 2;
+  int32_t ir_lengths[ir_num_members] = { 1, 1 };
+  MPI_Aint ir_offsets[ir_num_members] = { offsetof(IR, index),
+                                          offsetof(IR, rank) };
+  MPI_Datatype ir_types[ir_num_members] = { mpi_index_type, mpi_index_type };
+
+  MPI_Datatype mpi_ir_type;
+  MPI_Type_create_struct(ir_num_members, ir_lengths, ir_offsets, ir_types,
+                         &mpi_ir_type);
+  MPI_Type_commit(&mpi_ir_type);
+
+  constexpr size_t irr_num_members = 3;
+  int32_t irr_lengths[irr_num_members] = { 1, 1, 1 };
+  MPI_Aint irr_offsets[irr_num_members] = { offsetof(IRR, index),
+                                            offsetof(IRR, rank1),
+                                            offsetof(IRR, rank2) };
+  MPI_Datatype irr_types[irr_num_members] = { mpi_index_type, mpi_index_type,
+                                              mpi_index_type };
+
+  MPI_Datatype mpi_irr_type;
+  MPI_Type_create_struct(irr_num_members, irr_lengths, irr_offsets, irr_types,
+                         &mpi_irr_type);
+  MPI_Type_commit(&mpi_irr_type);
 
   size_t local_size = bs_substrings.size();
 
@@ -91,8 +121,8 @@ std::vector<IndexType> sort_bs_suffixes(
     return bs_positions;
   }
 
-  dsss::mpi::sort(irs, [](const IR& a, const IR& b) {
-                         return a.index < b.index; }, env);
+  dsss::mpi::sort(irs, mpi_ir_type, [](const IR& a, const IR& b) {
+                                      return a.index < b.index; }, env);
 
   local_size = irs.size();
   offset = dsss::mpi::ex_prefix_sum(local_size);
@@ -105,7 +135,7 @@ std::vector<IndexType> sort_bs_suffixes(
   }
 
   size_t iteration = 0;
-  dsss::mpi::sort(irs, [iteration](const IR& a, const IR& b) {
+  dsss::mpi::sort(irs, mpi_ir_type, [iteration](const IR& a, const IR& b) {
     IndexType mod_mask = (size_t(1) << iteration) - 1;
     IndexType div_mask = ~mod_mask;
 
@@ -140,7 +170,7 @@ std::vector<IndexType> sort_bs_suffixes(
   irs.clear();
   irs.shrink_to_fit();
 
-  dsss::mpi::sort(irrs, [](const IRR& a, const IRR& b) {
+  dsss::mpi::sort(irrs, mpi_irr_type, [](const IRR& a, const IRR& b) {
     return std::tie(a.rank1, a.rank2) < std::tie(b.rank1, b.rank2);
   }, env);
 
@@ -177,8 +207,9 @@ std::vector<IndexType> sort_bs_suffixes(
   irrs.shrink_to_fit();
 
   ++iteration;
+
   auto part_isa = doubling_discarding<IndexType, true>(irss, iteration, env);
-  
+
   irs = dsss::mpi::zip(bs_positions, part_isa,
     [](const IndexType idx, const IndexType isa) {
       return IR { idx, isa };
@@ -190,7 +221,7 @@ std::vector<IndexType> sort_bs_suffixes(
   bs_positions.clear();
   bs_positions.shrink_to_fit();
 
-  dsss::mpi::sort(irs, [](const IR& a, const IR& b) {
+  dsss::mpi::sort(irs, mpi_ir_type, [](const IR& a, const IR& b) {
     return a.rank < b.rank;
   }, env);
 
@@ -234,7 +265,7 @@ inline size_t compute_local_size(size_t const global_size,
 template <typename IndexType>
 std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
   using bucket_info = bucket_info<IndexType>;
-  
+
   dsss::mpi::environment env;
   // 1. Classify string
   auto [ classified_strings, b_array ] = idx_b_star_substrings<IndexType>(
@@ -246,6 +277,7 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
   dsss::mpi::requestable_array req_text(distributed_input.string, local_string_size);
 
   // 2. Sort B*-substrings & B*-suffixes
+
   sort_bs_substrings(classified_strings);
   std::vector<IndexType> sorted_bs_suffixes =
     sort_bs_suffixes<IndexType>(classified_strings);
@@ -300,7 +332,6 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
       summed_size += size;
     }
   }
-
 
   // 3.2 Allocate local part of the SA
   std::vector<IndexType> local_sa(summed_size, IndexType(0));
@@ -464,8 +495,9 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
   auto induce_b_special = [&](size_t const c0, bucket_info const& cur_bckt,
                               size_t const global_size) {
     if (global_size > 0) {
-      bool completed = false;
       size_t cur_pos = 0;
+      size_t iteration = 0;
+      bool completed = false;
       while (!completed) {
         std::vector<IndexType> req_pos;
         for (; cur_pos < cur_bckt.containing; ++cur_pos) {
@@ -475,8 +507,9 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
             req_pos.push_back(val - 1);
           }
         }
+
         std::reverse(req_pos.begin(), req_pos.end());
-        
+
         auto res_chars = req_text.request2(req_pos);
 
         std::fill_n(borders.begin(), max_char + 1, 0);
@@ -768,6 +801,7 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
       gather_sa(b_array.a(c0, c1), a_buckets[suffix_id(c0, c1)]);
       // Gather A*-Suffixes
       gather_sa(b_array.a_star(c0, c1), a_buckets[star_suffix_id(c0, c1)]);
+      //std::cout << "GATHERING " << size_t(c0) << ", " << size_t(c1) << std::endl;
     }
     // c0 == c1
     gather_sa(b_array.a(c0, c0), a_buckets[suffix_id(c0, c0)]);
@@ -777,6 +811,7 @@ std::vector<IndexType> inducing(dsss::distributed_string&& distributed_input) {
       gather_sa(b_array.b_star(c0, c1), b_buckets[star_suffix_id(c0, c1)]);
       // Gather B-Suffixes
       gather_sa(b_array.b(c0, c1), b_buckets[suffix_id(c0, c1)]);
+      //std::cout << "GATHERING " << size_t(c0) << ", " << size_t(c1) << std::endl;
     }
   }
 

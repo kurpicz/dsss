@@ -14,7 +14,7 @@
 
 namespace dsss::tests::string_sorting {
 
-TEST(indexed_inssort, correctness) {
+TEST(indexed_msd_CE0, correctness) {
   constexpr std::size_t number_strings = 10000;
   constexpr std::size_t min_length = 15;
   constexpr std::size_t max_length = 20;
@@ -27,7 +27,7 @@ TEST(indexed_inssort, correctness) {
   ASSERT_TRUE(riss.is_sorted());
 }
 
-TEST(indexed_msd_CE0, correctness) {
+TEST(indexed_inssort, correctness) {
   constexpr std::size_t number_strings = 10000;
   constexpr std::size_t min_length = 15;
   constexpr std::size_t max_length = 20;

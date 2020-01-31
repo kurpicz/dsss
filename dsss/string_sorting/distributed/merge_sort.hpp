@@ -120,58 +120,69 @@ static inline void sample_sort(
   local_string_set = dsss::mpi::alltoallv_indexed_strings<IndexType>(
     local_string_set, interval_sizes);
 
-  std::vector<decltype(local_string_set.cbegin())> string_it(
-    env.size(), local_string_set.cbegin());
-  std::vector<decltype(local_string_set.cbegin())> end_it(
-    env.size(), local_string_set.cbegin() + receiving_sizes[0]);
+  // std::vector<decltype(local_string_set.cbegin())> string_it(
+  //   env.size(), local_string_set.cbegin());
+  // std::vector<decltype(local_string_set.cbegin())> end_it(
+  //   env.size(), local_string_set.cbegin() + receiving_sizes[0]);
 
-  for (std::int32_t i = 1; i < env.size(); ++i) {
-    string_it[i] = string_it[i - 1] + receiving_sizes[i - 1];
-    end_it[i] = end_it[i - 1] + receiving_sizes[i];
-  }
+  // for (std::int32_t i = 1; i < env.size(); ++i) {
+  //   string_it[i] = string_it[i - 1] + receiving_sizes[i - 1];
+  //   end_it[i] = end_it[i - 1] + receiving_sizes[i];
+  // }
 
   if constexpr (debug) {
     if (env.rank() == 0) {
       std::cout << "Sort received strings" << std::endl;
     }
+
+    for (int32_t i = 0; i < env.size(); ++i) {
+      if (i == env.rank()) {
+        std::cout << i << ": local_string_set.size() " << local_string_set.size() << std::endl;
+      }
+      env.barrier();
+    }
+
     env.barrier();
   }
 
-  struct idx_string_compare {
-    bool operator ()(const dsss::indexed_string<IndexType>& a,
-      const dsss::indexed_string<IndexType>& b) {
-      return (dsss::string_cmp(a, b) < 0);
-    }
-  }; // struct string_compare
+  LocalIdxSorter(local_string_set.strings(), local_string_set.size());
 
-  tlx::LoserTreeCopy<false, dsss::indexed_string<IndexType>, idx_string_compare>
-    lt(env.size());
 
-  std::size_t filled_sources = 0;
-  for (std::int32_t i = 0; i < env.size(); ++i) {
-    if (string_it[i] == end_it[i]) { lt.insert_start(nullptr, i, true); }
-    else {
-      lt.insert_start(&*string_it[i], i, false);
-      ++filled_sources;
-    }
-  }
+  // struct idx_string_compare {
+  //   bool operator ()(const dsss::indexed_string<IndexType>& a,
+  //     const dsss::indexed_string<IndexType>& b) {
+  //     return (dsss::string_cmp(a, b) < 0);
+  //   }
+  // }; // struct string_compare
 
-  lt.init();
+  // tlx::LoserTreeCopy<false, dsss::indexed_string<IndexType>, idx_string_compare>
+  //   lt(env.size());
 
-  std::vector<dsss::indexed_string<IndexType>> result;
-  result.reserve(local_string_set.size());
-  while (filled_sources) {
-    std::int32_t source = lt.min_source();
-    result.push_back(*string_it[source]);
-    ++string_it[source];
-    if (string_it[source] != end_it[source]) {
-      lt.delete_min_insert(&*string_it[source], false);
-    } else {
-      lt.delete_min_insert(nullptr, true);
-      --filled_sources;
-    }
-  }
-  local_string_set.update(std::move(result));
+  // std::size_t filled_sources = 0;
+  // for (std::int32_t i = 0; i < env.size(); ++i) {
+  //   if (string_it[i] == end_it[i]) { lt.insert_start(nullptr, i, true); }
+  //   else {
+  //     lt.insert_start(&*string_it[i], i, false);
+  //     ++filled_sources;
+  //   }
+  // }
+
+  // lt.init();
+
+  // std::vector<dsss::indexed_string<IndexType>> result;
+  // result.reserve(local_string_set.size());
+  // while (filled_sources) {
+  //   std::int32_t source = lt.min_source();
+  //   result.push_back(*string_it[source]);
+  //   ++string_it[source];
+  //   if (string_it[source] != end_it[source]) {
+  //     lt.delete_min_insert(&*string_it[source], false);
+  //   } else {
+  //     lt.delete_min_insert(nullptr, true);
+  //     --filled_sources;
+  //   }
+  // }
+  // local_string_set.update(std::move(result));
 
   if constexpr (debug) {
     if (env.rank() == 0) {

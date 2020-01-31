@@ -49,14 +49,46 @@ bool check(std::vector<IndexType>& sa,
     }
   } DSSS_ATTRIBUTE_PACKED;
 
+  MPI_Datatype mpi_index_type;
+  MPI_Type_contiguous(sizeof(IndexType), MPI_CHAR, &mpi_index_type);
+  MPI_Type_commit(&mpi_index_type);
+
+  constexpr size_t sa_tuple_num_members = 2;
+  int32_t sa_tuple_lengths[sa_tuple_num_members] = { 1, 1 };
+  MPI_Aint sa_tuple_offsets[sa_tuple_num_members] = { offsetof(sa_tuple, rank),
+                                                      offsetof(sa_tuple, sa)};
+  MPI_Datatype sa_tuple_types[sa_tuple_num_members] = { mpi_index_type,
+                                                        mpi_index_type };
+
+  MPI_Datatype mpi_sa_tuple_type;
+  MPI_Type_create_struct(sa_tuple_num_members, sa_tuple_lengths,
+                         sa_tuple_offsets, sa_tuple_types, &mpi_sa_tuple_type);
+  MPI_Type_commit(&mpi_sa_tuple_type);
+
+  constexpr size_t rank_triple_num_members = 3;
+  int32_t rank_triple_lengths[rank_triple_num_members] = { 1, 1, 1 };
+  MPI_Aint rank_triple_offsets[rank_triple_num_members] =
+    { offsetof(rank_triple, rank1), offsetof(rank_triple, rank2),
+      offsetof(rank_triple, chr) };
+  MPI_Datatype rank_triple_types[rank_triple_num_members] = { mpi_index_type,
+                                                              mpi_index_type,
+                                                              MPI_CHAR };
+  MPI_Datatype mpi_rank_triple_type;
+  MPI_Type_create_struct(rank_triple_num_members, rank_triple_lengths,
+                         rank_triple_offsets, rank_triple_types,
+                         &mpi_rank_triple_type);
+  MPI_Type_commit(&mpi_rank_triple_type);
+
   auto sa_tuples = dsss::mpi::zip_with_index<IndexType>(sa,
     [](IndexType i, IndexType sa_pos) {
       return sa_tuple { i + IndexType(1), sa_pos };
     });
 
-  dsss::mpi::sort(sa_tuples, [](const sa_tuple& a, const sa_tuple& b) {
-    return a.sa < b.sa;
-  });
+
+  dsss::mpi::sort(sa_tuples, mpi_sa_tuple_type,
+                  [](const sa_tuple& a, const sa_tuple& b) {
+                    return a.sa < b.sa;
+                  });
   sa_tuples = dsss::mpi::distribute_data(sa_tuples);
   env.barrier();
 
@@ -91,9 +123,10 @@ bool check(std::vector<IndexType>& sa,
     );
   }
 
-  dsss::mpi::sort(rts, [](const rank_triple& a, const rank_triple& b) {
-    return a.rank1 < b.rank1; 
-  });
+  dsss::mpi::sort(rts, mpi_rank_triple_type,
+                  [](const rank_triple& a, const rank_triple& b) {
+                    return a.rank1 < b.rank1; 
+                  });
 
   local_size = rts.size();
 
